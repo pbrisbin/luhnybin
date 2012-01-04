@@ -67,7 +67,7 @@ parseDigits = map digitToInt . filter isDigit
 -- The hard part.
 --
 -- Split the string up into all sequences of *digit* lengths 14 through
--- 16, mask each sub sequence, then collapse those masks down into on
+-- 16, mask each sub sequence, then collapse those masks down into one
 -- overall mask.
 --
 -- In order to perform well, we must leverage the fact that masking any
@@ -78,9 +78,10 @@ maskSubSequences :: String -> String
 maskSubSequences = collapse . map show . maskSubSequences' . subSequences
 
     where
-        -- in order for the masking function to be optimized the list of
-        -- subsequence needs to come with inner subsequences immediately
-        -- following their containing sequence before shifting.
+        -- in order for the masking function to be optimized, the list
+        -- of subsequence needs to come with inner subsequences
+        -- immediately following their containing sequence before
+        -- shifting.
         subSequences :: String -> [SubSequence]
         subSequences s = map (takeSubSequence s) $ getOffsets $ lengthDigits s
 
@@ -107,7 +108,7 @@ maskSubSequences = collapse . map show . maskSubSequences' . subSequences
         -- bother masking any following offsets of smaller lengths as
         -- they are assumed to be inner subsequences
         maskSubSequences' :: [SubSequence] -> [SubSequence]
-        maskSubSequences' [] = []
+        maskSubSequences' []     = []
         maskSubSequences' (s:ss) =
             let l     = seqLength s
                 (b,v) = maskSubSequence s
