@@ -11,10 +11,12 @@ data SubSequence = SubSequence
     { seqPrefix :: String
     , seqValue  :: String
     , seqSuffix :: String
+    , seqIndex  :: Int
+    , seqLength :: Int
     }
 
 instance Show SubSequence where
-    show (SubSequence pref val suf) = pref ++ val ++ suf
+    show (SubSequence pref val suf _ _) = pref ++ val ++ suf
 
 -- |
 --
@@ -68,54 +70,75 @@ parseDigits = map digitToInt . filter isDigit
 -- 16, mask each sub sequence, then collapse those masks down into on
 -- overall mask.
 --
+-- In order to perform well, we must leverage the fact that masking any
+-- N digit-length sequence means we don't need to look at any (< N)
+-- digit-length sub sequences
+--
 maskSubSequences :: String -> String
-maskSubSequences = collapse . map (show . maskSubSequence) . subSequences
+maskSubSequences = collapse . map show . maskSubSequences' . subSequences
 
     where
+        -- in order for the masking function to be optimized the list of
+        -- subsequence needs to come with inner subsequences immediately
+        -- following their containing sequence before shifting.
+        subSequences :: String -> [SubSequence]
+        subSequences s = map (takeSubSequence s) $ getOffsets $ lengthDigits s
+
+            where
+                takeSubSequence :: String -> (Int, Int) -> SubSequence
+                takeSubSequence str (offset,limit) = let beg = takeDigits offset str
+                                                         rst = dropDigits offset str
+                                                         mid = takeDigits limit rst
+                                                         end = dropDigits limit rst
+                                                     in SubSequence beg mid end offset limit
+
+                getOffsets :: Int -> [(Int,Int)]
+                getOffsets = go 16
+
+                    where
+                        go :: Int -> Int -> [(Int,Int)]
+                        go n m
+                            | n >= 16 = zip [0..(m-16)] (repeat 16) ++ go 15 m
+                            | n >= 15 = zip [0..(m-15)] (repeat 15) ++ go 14 m
+                            | n >= 14 = zip [0..(m-14)] (repeat 14)
+                            | otherwise = [] -- invalid case
+
+        -- mask each subsequence we see, if we do mask something don't
+        -- bother masking any following offsets of smaller lengths as
+        -- they are assumed to be inner subsequences
+        maskSubSequences' :: [SubSequence] -> [SubSequence]
+        maskSubSequences' [] = []
+        maskSubSequences' (s:ss) =
+            let l     = seqLength s
+                (b,v) = maskSubSequence s
+            in v : maskSubSequences' (if b then dropWhile ((< l) . seqLength) ss else ss)
+
+            where
+                maskSubSequence :: SubSequence -> (Bool, SubSequence)
+                maskSubSequence sq = let (b,v) = mask $ seqValue sq in (b, sq { seqValue = v })
+
+                mask :: String -> (Bool, String)
+                mask s = if luhnCheck (parseDigits s)
+                            then (True, map hideDigit s) else (False, s)
+
+                hideDigit :: Char -> Char
+                hideDigit c
+                    | isDigit c = 'X'
+                    | otherwise = c
+
+        -- take a list of masked strings and collapse them down so that
+        -- any character masked in any of the strings is masked in the
+        -- final output string
         collapse :: [String] -> String
         collapse []         = []
         collapse [x]        = x
         collapse (x1:x2:xs) = collapse $ (zipWith takeXs x1 x2) : xs
 
-        takeXs :: Char -> Char -> Char
-        takeXs 'X' _  = 'X'
-        takeXs  _ 'X' = 'X'
-        takeXs  c  _  =  c
-
-        maskSubSequence :: SubSequence -> SubSequence
-        maskSubSequence sq = sq { seqValue = mask $ seqValue sq }
-
-        mask :: String -> String
-        mask s = if luhnCheck (parseDigits s)
-                    then map hideDigit s else s
-
-        hideDigit :: Char -> Char
-        hideDigit c
-            | isDigit c = 'X'
-            | otherwise = c
-
-subSequences :: String -> [SubSequence]
-subSequences s = let offsets = getOffsets $ lengthDigits s
-                 in  map (takeSubSequence s) offsets
-
-takeSubSequence :: String -> (Int, Int) -> SubSequence
-takeSubSequence str (offset,limit) = let beg = takeDigits offset str
-                                         rst = dropDigits offset str
-                                         mid = takeDigits limit rst
-                                         end = dropDigits limit rst
-                                     in SubSequence beg mid end
-
-getOffsets :: Int -> [(Int,Int)]
-getOffsets = go 16
-
-    where
-        go :: Int -> Int -> [(Int,Int)]
-        go n m
-            | n >= 16 = zip [0..(m-16)] (repeat 16) ++ go 15 m
-            | n >= 15 = zip [0..(m-15)] (repeat 15) ++ go 14 m
-            | n >= 14 = zip [0..(m-14)] (repeat 14)
-            | otherwise = [] -- invalid case
-
+            where
+                takeXs :: Char -> Char -> Char
+                takeXs 'X' _  = 'X'
+                takeXs  _ 'X' = 'X'
+                takeXs  c  _  =  c
 
 -- |
 --
