@@ -1,6 +1,10 @@
+-- |
+--
+-- The Luhn check implemented in Haskell.
+--
 module Luhn (luhnCheck) where
 
-import Utils
+import Utils (digitToInt)
 
 luhnCheck :: [Int] -> Bool
 luhnCheck = (== 0) . (`mod` 10) . sum
