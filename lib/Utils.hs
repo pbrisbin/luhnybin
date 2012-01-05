@@ -3,8 +3,9 @@ module Utils
     , takeDigits
     , dropDigits
     , parseDigits
-    , isDigit
-    , digitToInt
+    , isCcDigit
+    , when
+    , module Data.Char
     ) where
 
 import Data.Char (isDigit, digitToInt)
@@ -52,3 +53,11 @@ dropDigits n = go n 0
 --
 parseDigits :: String -> [Int]
 parseDigits = map digitToInt . filter isDigit
+
+-- | As per the exercise, CC strings are digits, spaces, and/or hyphens
+isCcDigit :: Char -> Bool
+isCcDigit = flip elem (['0'..'9'] ++ " -")
+
+-- | Apply a function only when a predicate holds
+when :: (a -> Bool) -> (a -> a) -> a -> a
+when p f a = if p a then f a else a

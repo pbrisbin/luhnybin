@@ -1,24 +1,6 @@
--- |
---
--- A SubSequence is use to manipulate a substring of characters while
--- retaining information about what precedes and follows in the overall
--- string so it can be reconstructed post-manipulation.
---
--- This module is responsible for taking a string of characters and
--- providing all the subsequences of interesting lengths (where the
--- lengths are determined by number of *digit* characters).
---
--- The list of SubSequences is returned in such a way that inner
--- subsequences are listed immediately after their containers. This
--- allows operations (such as masking) to be optimized by smartly
--- skipping inner sequences when appropriate.
---
 -- TODO:
 --
---   getOffsets should return things in the correct order
---
---   subSequences, etc are hardcoded at 14 min, 16 max; parameterize
---   these
+--   hardcoded at 14 min, 16 max; parameterize these
 --
 module SubSequences
     ( SubSequence(..)
@@ -26,6 +8,7 @@ module SubSequences
     ) where
 
 import Utils
+import Data.List (sortBy, nub)
 
 data SubSequence = SubSequence
     { seqPrefix :: String
@@ -39,14 +22,26 @@ instance Show SubSequence where
     show (SubSequence pref val suf _ _) = pref ++ val ++ suf
 
 subSequences :: String -> [SubSequence]
-subSequences s = map (takeSubSequence s) $ getOffsets $ lengthDigits s
+subSequences s = map (takeSubSequence s) $ sortOffsets $ nub $ getOffsets $ lengthDigits s
 
-takeSubSequence :: String -> (Int, Int) -> SubSequence
-takeSubSequence str (offset,limit) = let beg = takeDigits offset str
-                                         rst = dropDigits offset str
-                                         mid = takeDigits limit rst
-                                         end = dropDigits limit rst
-                                     in SubSequence beg mid end offset limit
+    where
+        takeSubSequence :: String -> (Int, Int) -> SubSequence
+        takeSubSequence str (offset,limit) = let beg = takeDigits offset str
+                                                 rst = dropDigits offset str
+                                                 mid = takeDigits limit rst
+                                                 end = dropDigits limit rst
+                                             in SubSequence beg mid end offset limit
+
+-- | Sorts index ascending, length decending. This way inner sequences
+--   follow their containers.
+sortOffsets :: [(Int,Int)] -> [(Int,Int)]
+sortOffsets = sortBy cmp
+
+    where
+        cmp (a1,b1) (a2,b2) =
+            case compare a1 a2 of
+                EQ -> compare b2 b1
+                x  -> x
 
 getOffsets :: Int -> [(Int,Int)]
 getOffsets = go 16
