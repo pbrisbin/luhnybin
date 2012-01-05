@@ -3,14 +3,16 @@
 Current status:
 
 ~~~ 
-$ ./run.sh 
+$ ghc --make -threaded -O -ilib -o mask  # compile
+$ ./run.sh                               # run the test
 Running tests against mask.sh...
 
 ......................
 
 Tests passed!
 
-Total time:   46,463ms
+Total time:   31,091ms
+
 ~~~
 
 ---
