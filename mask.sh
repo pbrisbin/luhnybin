@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # Call your program here instead of cat.
-runhaskell mask.hs
+runhaskell -ilib mask.hs
