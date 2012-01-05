@@ -1,3 +1,20 @@
+# Haskell
+
+Current status:
+
+~~~ 
+$ ./run.sh 
+Running tests against mask.sh...
+
+......................
+
+Tests passed!
+
+Total time:   46,463ms
+~~~
+
+---
+
 Coding Challenge: The Luhny Bin
 ===============================
 
