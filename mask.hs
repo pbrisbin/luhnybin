@@ -29,24 +29,20 @@ maskGroup :: Int -> String -> String
 maskGroup _ [] = []
 maskGroup i s@(c:cs) = let n = max i $ maxLuhnLen s in
     if isDigit c
-        then when (n > 0) (const maskChar) c : maskGroup (n-1) cs
+        then (if n > 0 then maskChar else c) : maskGroup (n-1) cs
         else c : maskGroup i cs
 
-    where
-        when :: Bool -> (a -> a) -> a -> a
-        when p f a = if p then f a else a
-
 maxLuhnLen :: String -> Int
-maxLuhnLen s = maximum $ map (\i -> tryLuhn i s) [minLen..maxLen]
+maxLuhnLen s = maximum $ map (tryLuhn s) [minLen..maxLen]
     
     where
-        tryLuhn :: Int -> String -> Int
-        tryLuhn n s
+        tryLuhn :: String -> Int -> Int
+        tryLuhn s n
             | length s < n = 0
             | otherwise    = if luhn n s then n else 0
             
         luhn :: Int -> String -> Bool
-        luhn n s = luhnCheck . (map digitToInt) . take n $ filter isDigit s
+        luhn n = luhnCheck . (map digitToInt) . take n . filter isDigit
 
 luhnCheck :: [Int] -> Bool
 luhnCheck = (== 0) . (`mod` 10) . sum
